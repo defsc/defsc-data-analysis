@@ -1,3 +1,4 @@
 results/
 config/
 jupyter-notebooks/.ipynb_checkpoints/
+binary-association-rules-daily-distribution/*.csv
