@@ -1,7 +1,8 @@
+import os
 from pandas import read_csv, to_datetime
 from matplotlib import pyplot
 
-time_series_csv = 'data/raw-204.csv'
+time_series_csv = os.environ['MSC_DATA'] + '/time_series_csv/raw-204.csv'
 df = read_csv(time_series_csv, header=0, index_col=0)
 df.index = to_datetime(df.index)
 

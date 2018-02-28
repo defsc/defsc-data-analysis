@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import seaborn as sns
 
 from matplotlib import pyplot
@@ -14,7 +15,7 @@ def heat_map_of_correlation_coefficients(df):
     sns.heatmap(corr_df, annot=True)
     pyplot.show()
 
-time_series_csv = 'data/raw-204.csv'
+time_series_csv = os.environ['MSC_DATA'] + '/time_series_csv/raw-204.csv'
 df = read_csv(time_series_csv, header=0, index_col=0)
 df.index = to_datetime(df.index)
 df = df.apply(lambda x: x.resample('1H').mean())

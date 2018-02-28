@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from matplotlib import pyplot
 from pandas import read_csv, to_datetime
@@ -24,7 +25,7 @@ def plot_cross_corelation_between_all_parameters_accross_the_time(df, predicted_
 
     pyplot.show()
 
-time_series_csv = 'data/raw-204.csv'
+time_series_csv = os.environ['MSC_DATA'] + '/time_series_csv/raw-204.csv'
 df = read_csv(time_series_csv, header=0, index_col=0)
 df.index = to_datetime(df.index)
 df = df.apply(lambda x: x.dropna())
