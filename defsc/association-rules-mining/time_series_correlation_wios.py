@@ -25,6 +25,14 @@ def time_series(extract_parameter_timestamp_function, extract_parameter_value_fu
             time_series[timestamp] = extract_parameter_value_function(measurement)
     return Series(time_series)
 
+def wios_time_series(extract_parameter_timestamp_function, extract_parameter_value_function, db_collection, lom_id):
+    time_series = {}
+    for measurement in db_collection.find({'wios_sensor_id':lom_id}):
+        timestamp = extract_parameter_timestamp_function(measurement)
+        if extract_parameter_value_function(measurement) != 'NA' and extract_parameter_value_function(measurement) != 'N/A':
+            time_series[timestamp] = extract_parameter_value_function(measurement)
+    return Series(time_series)
+
 def traffic_speed_time_series(db_collection, lom_id):
     time_series = {}
     for measurement in db_collection.find({'lom_id':lom_id}):
@@ -51,32 +59,33 @@ def traffic_jam_time_series(db_collection, lom_id):
         time_series[timestamp] = jam_sum / jam_weight
     return Series(time_series)
 
+
 def find_nearest_wunderground_sensor_for_airly_sensor(airly_db_collection, wunderground_db_collection):
     mapping = {}
     for airly_sensor in airly_db_collection.find():
         min_dist = float('Inf')
         for wunder_sensor in wunderground_db_collection:
-            dist = gpxpy.geo.haversine_distance(wunder_sensor['location']['latitude'],
-                                                wunder_sensor['location']['longitude'],
-                                                airly_sensor['location']['latitude'],
+            dist = gpxpy.geo.haversine_distance(wunder_sensor['location']['latitude'], 
+                                                wunder_sensor['location']['longitude'], 
+                                                airly_sensor['location']['latitude'], 
                                                 airly_sensor['location']['longitude'])
             if dist < min_dist:
                 min_dist = dist
                 mapping[str(airly_sensor['_id'])] = wunder_sensor['_id']
     return mapping
 
-def find_nearest_wios_sensor_for_airly_sensor(airly_db_collection, wios_db_collection):
+def find_nearest_airly_sensor_for_wios_sensor(wios_db_collection, airly_db_collection):
     mapping = {}
-    for airly_sensor in airly_db_collection.find():
+    for wios_sensor in wios_db_collection.find():
         min_dist = float('Inf')
-        for wios_sensor in wios_db_collection.find():
-            dist = gpxpy.geo.haversine_distance(airly_sensor['location']['latitude'],
-                                                airly_sensor['location']['longitude'],
-                                                float(wios_sensor['location']['latitude']),
+        for airly_sensor in airly_sensors.find():
+            dist = gpxpy.geo.haversine_distance(airly_sensor['location']['latitude'], 
+                                                airly_sensor['location']['longitude'], 
+                                                float(wios_sensor['location']['latitude']), 
                                                 float(wios_sensor['location']['longitude']))
             if dist < min_dist:
                 min_dist = dist
-                mapping[airly_sensor['_id']] = wios_sensor['_id']
+                mapping[wios_sensor['_id']] = airly_sensor['_id']
     return mapping
 
 def extract_timestamp_from_airly_measurement(measurement):
@@ -169,26 +178,100 @@ def extract_precip_today_in_from_wunder_measurement(measurement):
     if (measurement.get('current_observation',{}).get('precip_today_in') != ''):
         return measurement.get('current_observation',{}).get('precip_today_in')
 
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+def compute_assocation_rule_coefficient(param1_key, param2_key, param1_time_series, param2_time_series, sigma_1, sgima_2, lag):
+    param1_derivatives = []
+    param2_derivatives = []
+    
+    for tuplee in pairwise(param1_time_series):
+        if tuplee[0] == 0:
+            val = tuplee[1]
+        else:
+            val = (tuplee[1] - tuplee[0]) / tuplee[0]
+        if val > -sigma_1 and val < sigma_1:
+            param1_derivatives.append(0)
+        elif val >= sigma_1:
+            param1_derivatives.append(1)
+        else:
+            param1_derivatives.append(-1)
+
+    for tuplee in pairwise(param2_time_series):
+        if tuplee[0] == 0:
+            val = tuplee[1]
+        else:
+            val = (tuplee[1] - tuplee[0]) / tuplee[0]
+        if val > -sgima_2 and val < sgima_2:
+            param2_derivatives.append(0)
+        elif val >= sgima_2:
+            param2_derivatives.append(1)
+        else:
+            param2_derivatives.append(-1)
+
+    research_length = min(len(param1_derivatives),len(param2_derivatives)) - lag
+
+    d = 1
+    ii = 1
+    e = 1
+    f = 1
+    n = 1
+
+    for i in range(research_length):
+        if (param1_derivatives[i] == 1 and param2_derivatives[i + lag] == 1) or (param1_derivatives[i] == -1 and param2_derivatives[i + lag] == -1):
+            d+= 1
+        elif (param1_derivatives[i] == 1 and param2_derivatives[i + lag] == -1) or (param1_derivatives[i] == -1 and param2_derivatives[i + lag] == 1):
+            ii+= 1
+        elif (param1_derivatives[i] == 0 and param2_derivatives[i + lag] == 1) or (param1_derivatives[i] == 0 and param2_derivatives[i + lag] == -1):
+            e+= 1
+        elif (param1_derivatives[i] == 1 and param2_derivatives[i + lag] == 0) or (param1_derivatives[i] == -1 and param2_derivatives[i + lag] == 0):
+            f+= 1
+        elif (param1_derivatives[i] == 0 and param2_derivatives[i + lag] == 0):
+            n+= 1
+    if (abs(d/research_length - ii/research_length) >= 0.2):
+        print(param1_key, ',', param2_key, ',',d, ',', ii, ',', e, ',',f, ',',n)
+
+    a_d = d / (research_length)
+    a_i = ii / (research_length)
+    or_d = d * n / (e * f)
+    or_i = ii / (e * f)
+
 def process(ts):
     #ts = ts.truncate(before='2017-12-07 10:25:19+00:00')
     #ts = ts.truncate(after='2018-01-30 23:00:00+00:00')
-    #ts = ts.resample('1H').mean()
-    #ts = ts.fillna(ts.bfill())
-    #decomposition = sm.tsa.seasonal_decompose(ts, model='additive')
+    ts = ts.resample('1H').mean()
+    ts = ts.fillna(ts.bfill())
+    decomposition = sm.tsa.seasonal_decompose(ts, model='additive')
     #fig = decomposition.plot()
     #pyplot.show()
     return ts
+
+def heat_map_of_correlation_coefficients(chart_name, dict_of_time_series):
+    df = DataFrame()
+
+    for k,v in dict_of_time_series.items():
+        df[k]=process(v);
+
+    corr_df = df.corr(method='pearson')
+
+    sns.heatmap(corr_df, annot=True)
+    pyplot.title(chart_name)
+    wios_sensor['_id']
+    pyplot.show()
 
 def save_dict_into_csv(dict_of_time_series):
     for k,v in dict_of_time_series.items():
         process(v).to_csv(path=k + '.csv', index=False)
 
-def save_dict_into_csv_2(dict_of_time_series, filename):
+def save_dict_into_csv_2(dict_of_time_series):
     new = {}
     for k,v in dict_of_time_series.items():
         new[k] = process(v)
     df = DataFrame(new)
-    df.to_csv('raw-' + filename + '.csv')
+    df.to_csv('pollution.csv')
 
 client = MongoClient('localhost', 27017)
 db = client['local']
@@ -202,52 +285,46 @@ ow_weather_measurements = db['open_weather_measurements']
 wunder_weather_measurements = db['wunder_sensors_measurements']
 traffic_measurements = db['traffic_measurements']
 
-nearest_wunder_sensors = find_nearest_wunderground_sensor_for_airly_sensor(airly_sensors, wunder_sensors)
-nearest_wios_sensor = find_nearest_wios_sensor_for_airly_sensor(airly_sensors, wios_sensors)
+nearest_airly_sensors = find_nearest_airly_sensor_for_wios_sensor(wios_sensors, airly_sensors)
 
-for airly_sensor in airly_sensors.find():
+nearest_wunder_sensors = find_nearest_wunderground_sensor_for_airly_sensor(airly_sensors, wunder_sensors)
+
+for wios_sensor in wios_sensors.find():
     time_series_dict = {}
-    lom_id = airly_sensor['_id']
-    nearest_wios_sensor_id = nearest_wios_sensor[lom_id]
-    lom_id = str(lom_id)
+    lom_id = nearest_airly_sensors[wios_sensor['_id']]
 
     dictionaries_with_measurements = {}
-    for wios_measurement in wios_measurements.find({'wios_sensor_id':str(nearest_wios_sensor_id)}):
+    for wios_measurement in wios_measurements.find({'wios_sensor_id':str(wios_sensor['_id'])}):
         time_stamp = extract_timestamp_from_wios_measurement(wios_measurement)
         for k,v in wios_measurement['values'].items():
-            tmp_dict = dictionaries_with_measurements.get('wios-'+k, {})
-            if v != '':
+            tmp_dict = dictionaries_with_measurements.get('wios'+k, {})
+            if v == '':
+                tmp_dict[time_stamp] = 0.0
+            else:
                 tmp_dict[time_stamp] = v
-            dictionaries_with_measurements['wios-'+k] = tmp_dict
+            dictionaries_with_measurements['wios'+k] = tmp_dict
     for k,v in dictionaries_with_measurements.items():
         series = Series(v)
         series = series.astype(float)
         if not series.empty:
             time_series_dict[k] = series
 
+    lom_id = str(lom_id)
     series = Series(time_series(extract_timestamp_from_airly_measurement, extract_pm1_from_airly_measurement, airly_measurements, lom_id))
     if not series.empty:
-        time_series_dict['airly-pm1'] = series
-
-    series = Series(time_series(extract_timestamp_from_airly_measurement, extract_pm10_from_airly_measurement, airly_measurements, lom_id))
-    if not series.empty:
-        time_series_dict['airly-pm10'] = series
-
-    series = Series(time_series(extract_timestamp_from_airly_measurement, extract_pm25_from_airly_measurement, airly_measurements, lom_id))
-    if not series.empty:
-        time_series_dict['airly-pm25'] = series
+        time_series_dict['pm1'] = series
 
     series = Series(time_series(extract_timestamp_from_airly_measurement, extract_temperature_from_airly_measurement, airly_measurements, lom_id))
     if not series.empty:
         time_series_dict['airly-tmp'] = series
 
-    series = Series(time_series(extract_timestamp_from_airly_measurement, extract_pressure_from_airly_measurement, airly_measurements, lom_id))
+    series = Series(time_series(extract_timestamp_from_airly_measurement, extract_pm10_from_airly_measurement, airly_measurements, lom_id))
     if not series.empty:
-        time_series_dict['airly-press'] = series
+        time_series_dict['pm10'] = series
 
-    series = Series(time_series(extract_timestamp_from_airly_measurement, extract_humidity_from_airly_measurement, airly_measurements, lom_id))
+    series = Series(time_series(extract_timestamp_from_airly_measurement, extract_pm25_from_airly_measurement, airly_measurements, lom_id))
     if not series.empty:
-        time_series_dict['airly-hum'] = series
+        time_series_dict['pm25'] = series
 
     series = Series(traffic_jam_time_series(traffic_measurements, lom_id))
     if not series.empty:
@@ -259,70 +336,23 @@ for airly_sensor in airly_sensors.find():
 
     series = Series(time_series(extract_timestamp_from_mongo_id, extract_temp_from_ow_measurement, ow_weather_measurements, lom_id))
     if not series.empty:
-        time_series_dict['ow-tmp'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_pressure_from_ow_measurement, ow_weather_measurements, lom_id))
-    if not series.empty:
-        time_series_dict['ow-press'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_humidity_from_ow_measurement, ow_weather_measurements, lom_id))
-    if not series.empty:
-        time_series_dict['ow-hum'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_visibility_from_ow_measurement, ow_weather_measurements, lom_id))
-    if not series.empty:
-        time_series_dict['ow-vis'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_wind_speed_from_ow_measurement, ow_weather_measurements, lom_id))
-    if not series.empty:
-        time_series_dict['ow-wnd-spd'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_wind_deg_from_ow_measurement, ow_weather_measurements, lom_id))
-    if not series.empty:
-        time_series_dict['ow-wnd-deg'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_wind_kph_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-wnd-spd'] = series
+        time_series_dict['ow-temp'] = series
 
     series = Series(time_series(extract_timestamp_from_mongo_id, extract_temp_c_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
     if not series.empty:
-        time_series_dict['wg-tmp'] = series
+        time_series_dict['wdg-tmp'] = series
 
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_pressure_mb_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-press'] = series
+    heat_map_of_correlation_coefficients('Wios sensor ' + str(wios_sensor['_id']), time_series_dict)
 
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_wind_gust_kph_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-wnd-gust'] = series
+    #save_dict_into_csv_2(time_series_dict)
 
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_uv_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-uv'] = series
+    #for combination in combinations(time_series_dict.keys(), 2):
+        #print(combination[0], combination[1])
+        #time_series_1 = process(time_series_dict[combination[0]])
+        #time_series_2 = process(time_series_dict[combination[1]])
 
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_visibility_km_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-vis'] = series
+        #time_series_1 = time_series_1.reindex(time_series_2.index, method='pad')
+        #print(wios_sensor['_id'],',', lom_id, ',', combination[0], ',', combination[1],',', time_series_1.corr(time_series_2, method='pearson'))
+        #compute_assocation_rule_coefficient(combination[0], combination[1], time_series_1, time_series_2, 0.0, 0.0, 0)
 
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_relative_humidity_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-hum'] = series
 
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_windchill_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-windchill'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_feelslike_c_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-feelslike'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_precip_1hr_in_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-precip-1h'] = series
-
-    series = Series(time_series(extract_timestamp_from_mongo_id, extract_precip_today_in_from_wunder_measurement, wunder_weather_measurements, nearest_wunder_sensors[lom_id]))
-    if not series.empty:
-        time_series_dict['wg-precip-1day'] = series
-
-    save_dict_into_csv_2(time_series_dict, lom_id)
