@@ -71,9 +71,11 @@ def plot_histograms_of_forecasts_errors_per_hour(y_true, y_pred):
         pyplot.title('Hour: {}'.format(hour))
         pyplot.show()
 
-def plot_forecasting_result(y_true, y_pred):
-    flattened_y_true = [y for x in y_true for y in x]
-    flattened_y_pred = [y for x in y_pred for y in x]
+def plot_forecasting_result(y_real, y_pred):
+    for prediction_step in range(y_real.shape[0]):
+        flattened_y_true = y_real[prediction_step, :]
+        flattened_y_pred = y_pred[prediction_step, :]
 
-    pyplot.plot(range(len(flattened_y_true)), flattened_y_true, range(len(flattened_y_pred)), flattened_y_pred)
-    pyplot.show()
+        if (any(flattened_y_true)):
+            pyplot.plot(range(len(flattened_y_true)), flattened_y_true, range(len(flattened_y_pred)), flattened_y_pred)
+            pyplot.show()
