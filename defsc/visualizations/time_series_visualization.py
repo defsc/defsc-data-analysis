@@ -6,6 +6,7 @@ import statsmodels.api as sm
 from pandas.tools.plotting import autocorrelation_plot
 from operator import sub
 from operator import abs
+from mpl_toolkits.mplot3d import axes3d
 
 
 def crosscorr(datax, datay, lag=0):
@@ -124,5 +125,6 @@ def plot_forecast_result_in_3d(y_real, y_pred):
     ax.set_xlabel('Date (hours)')
     ax.set_ylabel('Hour of forecast')
     ax.set_zlabel('Predicted value')
-    pyplot.show()
-    #pyplot.savefig("second.png")
+
+    # pyplot.show()
+    pyplot.savefig("second.png")

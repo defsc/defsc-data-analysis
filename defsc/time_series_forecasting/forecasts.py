@@ -1,11 +1,11 @@
-import matplotlib
-
-matplotlib.use('Qt5Agg')
+# import matplotlib
+#
+# matplotlib.use('Qt5Agg')
 
 from defsc.data_structures_transformation.data_structures_transformation import transform_dataframe_to_supervised
 from defsc.data_structures_transformation.data_structures_transformation import split_timeseries_set_on_test_train
 from defsc.time_series_forecasting.linear_regression import generate_linear_regression_model
-from defsc.time_series_forecasting.random_forest_regression_tree import generate_random_forest_regression_tree_model
+# from defsc.time_series_forecasting.random_forest_regression_tree import generate_random_forest_regression_tree_model
 from defsc.filtering.fill_missing_values import simple_fill_missing_values
 from defsc.time_series_forecasting.nn_lstm_forecasting import generate_nn_lstm_model
 from defsc.time_series_forecasting.nn_lstm_forecasting import reshape_input_for_lstm
@@ -66,21 +66,21 @@ def calculate_mean_absolute_metrics(y_real, y_predicted):
 if __name__ == "__main__":
     directory = '../data'
     for filename in os.listdir(directory):
-        print(filename)
-        if filename == 'pollution.csv':
-            continue
-        csv = os.path.join(directory, filename)
-        df = read_csv(csv, header=0, index_col=0)
-        df.index = to_datetime(df.index)
+        if filename == "raw-173.csv":
+            print(filename)
+            if filename == 'pollution.csv':
+                continue
+            csv = os.path.join(directory, filename)
+            df = read_csv(csv, header=0, index_col=0)
+            df.index = to_datetime(df.index)
 
-        df = simple_fill_missing_values(df)
+            df = simple_fill_missing_values(df)
 
-        number_of_timestep_ahead = 24
-        number_of_timestep_backward = 24
+            number_of_timestep_ahead = 24
+            number_of_timestep_backward = 24
 
-        x_column_names = df.columns
-        y_column_names = ['airly-pm1']
-
+            x_column_names = df.columns
+            y_column_names = ['airly-pm1']
 
         #from pandas import Series
         #new_column = Series(testGauss(df['airly-pm1'].values, len(df['airly-pm1'].values)), name='airly-pm1', index=df.index)
@@ -112,9 +112,9 @@ if __name__ == "__main__":
 
         calculate_mean_absolute_metrics(test_y, linear_regression_forecast_y)
         #plot_histograms_of_forecasts_errors_per_hour(test_y, linear_regression_forecast_y)
+        plot_forecast_result_in_3d(test_y, linear_regression_forecast_y)
 
-        np.savetxt('../results/y_real' + '_' + filename, test_y, delimiter=',', fmt='%.2f')
-        np.savetxt('../results/y_predicted' + '_' + filename, linear_regression_forecast_y, delimiter=',', fmt='%.2f')
+        #np.savetxt('../results/y_real' + '_' + filename, test_y, delimiter=',', fmt='%.2f')
+        #np.savetxt('../results/y_predicted' + '_' + filename, linear_regression_forecast_y, delimiter=',', fmt='%.2f')
 
         plot_forecasting_result(test_y, linear_regression_forecast_y)
-
