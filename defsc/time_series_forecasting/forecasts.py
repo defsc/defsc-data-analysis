@@ -11,7 +11,11 @@ from defsc.time_series_forecasting.nn_lstm_forecasting import generate_nn_lstm_m
 from defsc.time_series_forecasting.nn_lstm_forecasting import reshape_input_for_lstm
 from defsc.visualizations.time_series_visualization import plot_histograms_of_forecasts_errors_per_hour
 from defsc.visualizations.time_series_visualization import plot_forecasting_result
+from defsc.visualizations.time_series_visualization import plot_forecasting_result_v2
+from defsc.visualizations.time_series_visualization import plot_forecast_result_in_3d
 from defsc.utils.utils import print_number_of_nan_values
+from defsc.filtering.time_series_filtering import testGauss
+from mpl_toolkits.mplot3d import Axes3D
 
 import matplotlib.pyplot as pyplot
 
@@ -27,6 +31,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def forecast_linear(model, X):
+    X = X.reshape(1,-1)
     forecast = model.predict(X)
     return forecast.flatten()
 
@@ -76,6 +81,14 @@ if __name__ == "__main__":
         x_column_names = df.columns
         y_column_names = ['airly-pm1']
 
+
+        #from pandas import Series
+        #new_column = Series(testGauss(df['airly-pm1'].values, len(df['airly-pm1'].values)), name='airly-pm1', index=df.index)
+        #df['airly-pm1'].plot()
+        #new_column.plot()
+        #pyplot.show()
+        #df.update(new_column)
+
         df = transform_dataframe_to_supervised(df, x_column_names, y_column_names, number_of_timestep_ahead,
                                                number_of_timestep_backward)
 
@@ -98,8 +111,10 @@ if __name__ == "__main__":
         linear_regression_forecast_y = make_forecasts(model, test_x, number_of_timestep_ahead)
 
         calculate_mean_absolute_metrics(test_y, linear_regression_forecast_y)
-        # plot_histograms_of_forecasts_errors_per_hour(test_y, linear_regression_forecast_y)
+        #plot_histograms_of_forecasts_errors_per_hour(test_y, linear_regression_forecast_y)
+
+        np.savetxt('../results/y_real' + '_' + filename, test_y, delimiter=',', fmt='%.2f')
+        np.savetxt('../results/y_predicted' + '_' + filename, linear_regression_forecast_y, delimiter=',', fmt='%.2f')
+
         plot_forecasting_result(test_y, linear_regression_forecast_y)
 
-        # np.savetxt('../results/y_real' + '_' + filename, test_y, delimiter=',', fmt='%.2f')
-        # np.savetxt('../results/y_predicted' + '_' + filename, linear_regression_forecast_y, delimiter=',', fmt='%.2f')

@@ -77,5 +77,52 @@ def plot_forecasting_result(y_real, y_pred):
         flattened_y_pred = y_pred[prediction_step, :]
 
         if (any(flattened_y_true)):
-            pyplot.plot(range(len(flattened_y_true)), flattened_y_true, range(len(flattened_y_pred)), flattened_y_pred)
+            pyplot.plot(range(len(flattened_y_true)), flattened_y_true, range(len(flattened_y_pred)), flattened_y_pred, label=['true', 'pred'])
+            pyplot.legend(['true', 'pred'], loc='upper center')
             pyplot.show()
+
+def plot_forecasting_result_v2(y_real, y_pred):
+    for hour in range(24):
+        flattened_y_true = y_real[:, hour]
+        flattened_y_pred = y_pred[:, hour]
+
+        if (any(flattened_y_true)):
+            pyplot.plot(range(len(flattened_y_true)), flattened_y_true, range(len(flattened_y_pred)), flattened_y_pred, label=['true', 'pred'])
+            pyplot.title(hour)
+            pyplot.legend(['true', 'pred'], loc='upper center')
+            pyplot.show()
+
+def plot_forecast_result_in_3d(y_real, y_pred):
+    X = np.empty([y_real.shape[0], 24])
+    Y = np.empty([y_real.shape[0], 24])
+    Z_real = np.empty([y_real.shape[0], 24])
+    Z_pred = np.zeros([y_real.shape[0], 24])
+
+    idx = 0
+    for prediction_step in range(y_real.shape[0]):
+        X[prediction_step,] = np.array([prediction_step + 1] * 24)
+        Y[prediction_step,] = np.array(range(1,25))
+        Z_real[prediction_step,] = np.array([y_real[prediction_step][0]] * 24)
+
+        for prediction_hour in range(24):
+            if prediction_step + prediction_hour < y_real.shape[0]:
+                Z_pred[prediction_step + prediction_hour, prediction_hour] = y_pred[prediction_step, prediction_hour]
+
+        if idx < 24:
+            for prediction_hour in range(idx + 1, 24):
+                Z_pred[prediction_step, prediction_hour] = Z_pred[prediction_step, idx]
+
+        idx += 1
+
+
+    rstride = 35
+    cstride = 35
+    fig = pyplot.figure(figsize=(20, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_wireframe(X, Y, Z_real, rstride=rstride, cstride=cstride, colors='green')
+    ax.plot_wireframe(X, Y, Z_pred, rstride=rstride, cstride=cstride, colors='blue')
+    ax.set_xlabel('Date (hours)')
+    ax.set_ylabel('Hour of forecast')
+    ax.set_zlabel('Predicted value')
+    pyplot.show()
+    #pyplot.savefig("second.png")
