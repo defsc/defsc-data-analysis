@@ -116,15 +116,12 @@ def plot_forecast_result_in_3d(y_real, y_pred):
         idx += 1
 
 
-    rstride = 35
-    cstride = 35
     fig = pyplot.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_wireframe(X, Y, Z_real, rstride=rstride, cstride=cstride, colors='green')
-    ax.plot_wireframe(X, Y, Z_pred, rstride=rstride, cstride=cstride, colors='blue')
+    ax.plot_surface(X, Y, abs(Z_real - Z_pred))
     ax.set_xlabel('Date (hours)')
     ax.set_ylabel('Hour of forecast')
-    ax.set_zlabel('Predicted value')
 
+    ax.set_zlabel('Absolute difference between predicted value and actual value')
     # pyplot.show()
-    pyplot.savefig("second.png")
+    pyplot.savefig("third.png")
