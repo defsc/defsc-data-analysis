@@ -1,7 +1,7 @@
 #based on http://www.nehalemlabs.net/prototype/blog/2013/04/05/an-introduction-to-smoothing-time-series-in-python-part-i-filtering-theory/
-import matplotlib
+#import matplotlib
 
-matplotlib.use('Qt5Agg')
+#matplotlib.use('Qt5Agg')
 
 from defsc.filtering.fill_missing_values import simple_fill_missing_values
 
