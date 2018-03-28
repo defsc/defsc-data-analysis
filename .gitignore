@@ -5,3 +5,4 @@ jupyter-notebooks/.ipynb_checkpoints/
 .idea/
 __pycache__/
 venv/
+*.pyc
