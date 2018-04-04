@@ -12,13 +12,13 @@ def generate_arima_forecast(ts, number_of_timestep_ahead, percantage_of_train_da
     number_of_train_rows = int(number_of_rows * percantage_of_train_data)
     number_of_test_rows = number_of_rows - number_of_train_rows
 
-    history = ts[:number_of_train_rows]
+    history = ts[:number_of_train_rows].values
     test = ts[number_of_train_rows:]
     predictions = []
     for i in range(number_of_test_rows):
-        model = ARIMA(history, order=(4,0,0))
+        model = ARIMA(history, order=(5,1,0))
         model_fit = model.fit(disp=-1)
         prediction = model_fit.forecast(steps=number_of_timestep_ahead)[0]
         predictions.append(prediction)
-        history.append(test[i*number_of_timestep_ahead:(i+1)*number_of_timestep_ahead])
+        history = np.append(history, test[i])
     return np.asarray(predictions)
