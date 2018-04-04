@@ -152,15 +152,28 @@ def perform_nn_lstm_prediction(train_x, train_y, test_x, test_y, number_of_times
     return forecast
 
 
+def perform_persistence_model_prediction(df, last_seen_column_name, number_of_test_y_row, number_of_timestep_ahead):
+    forecast = []
+    for last_seen_y in df[last_seen_column_name][-number_of_test_y_row:]:
+        forecast.append(number_of_timestep_ahead * [last_seen_y])
+
+    return np.asarray(forecast)
+
+
 def evaluate_method_results(id, y_real, y_predicted):
     calculate_mean_absolute_metrics(id, y_real, y_predicted)
-    plot_histograms_of_forecasts_errors_per_hour(y_real, y_predicted, save_to_file=True, filename=id)
-    plot_forecast_result_as_heat_map(y_real, y_predicted, save_to_file=True, filename=id)
+    #plot_histograms_of_forecasts_errors_per_hour(y_real, y_predicted, save_to_file=True, filename=id)
+    #plot_forecast_result_as_heat_map(y_real, y_predicted, save_to_file=True, filename=id)
     plot_forecasting_result_v2(y_real, y_predicted, save_to_file=True, filename=id)
 
 def compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names):
-    plot_timeseries(df['airly-pm1(t+0)'], save_to_file=True,
-                    filename='forecasted_timeseries_' + os.path.splitext(filename)[0])
+    #plot_timeseries(df['airly-pm1(t+0)'], save_to_file=True,
+    #                filename='forecasted_timeseries_' + os.path.splitext(filename)[0])
+
+    persistence_model_result = perform_persistence_model_prediction(df, 'airly-pm1(t-1)', len(test_y),
+                                                                    number_of_timestep_ahead)
+    evaluate_method_results('persistence-model-regression_' + os.path.splitext(filename)[0], test_y,
+                            persistence_model_result)
 
     linear_regression_result = perform_linear_regression_prediction(train_x, train_y, test_x,
                                                                     number_of_timestep_ahead)
@@ -186,7 +199,6 @@ def compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahe
 if __name__ == "__main__":
     directory = '../data'
     for filename in os.listdir(directory):
-        print(filename)
         if filename == 'pollution.csv':
             continue
         csv = os.path.join(directory, filename)
@@ -212,12 +224,4 @@ if __name__ == "__main__":
                                                                               len(
                                                                                   y_column_names) * number_of_timestep_ahead)
 
-        #compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names)
-
-        plot_timeseries(df['airly-pm1(t+0)'], save_to_file=True,
-                        filename='forecasted_timeseries_' + os.path.splitext(filename)[0])
-
-        nn_lstm_regression_result = perform_nn_mlp_prediction(train_x, train_y, test_x, test_y,
-                                                               number_of_timestep_ahead)
-        evaluate_method_results('nn-lstm-regression_' + os.path.splitext(filename)[0], test_y,
-                                nn_lstm_regression_result)
+        compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names)
