@@ -16,5 +16,12 @@ def simple_fill_missing_values(df):
     df = df.drop('wg-windchill', axis=1)
     df = df.drop('wg-wnd-gust', axis=1)
     df = df.drop('wg-wnd-spd', axis=1)
+    df = df.drop('airly-pm10', axis=1)
+    df = df.drop('airly-pm25', axis=1)
+    df = df.drop('airly-press', axis=1)
+    if 'here-traffic-speed' in df.columns:
+        df = df.drop('here-traffic-speed', axis=1)
+    df = df.drop('ow-hum', axis=1)
+    df = df.drop('ow-tmp', axis=1)
 
     return df

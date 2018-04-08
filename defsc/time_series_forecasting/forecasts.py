@@ -21,7 +21,8 @@ from defsc.time_series_forecasting.random_forest_regression_tree import generate
 from defsc.filtering.fill_missing_values import simple_fill_missing_values
 from defsc.time_series_forecasting.nn_lstm_forecasting import generate_nn_lstm_model
 from defsc.time_series_forecasting.nn_lstm_forecasting import reshape_input_for_lstm
-from defsc.visualizations.time_series_visualization import plot_histograms_of_forecasts_errors_per_hour, plot_timeseries
+from defsc.visualizations.time_series_visualization import plot_histograms_of_forecasts_errors_per_hour, \
+    plot_timeseries, plot_all_time_series_from_dataframe
 from defsc.visualizations.time_series_visualization import plot_forecasting_result
 from defsc.visualizations.time_series_visualization import plot_forecasting_result_v2
 from defsc.visualizations.time_series_visualization import plot_forecast_result_in_3d
@@ -31,7 +32,7 @@ from defsc.filtering.time_series_filtering import testGauss
 from pandas import Series
 
 import matplotlib.pyplot as pyplot
-
+import itertools
 import numpy as np
 import os
 from math import sqrt
@@ -121,7 +122,7 @@ def perform_nn_mlp_prediction(train_x, train_y, test_x, test_y, number_of_timest
     test_x = test_x_scaler.fit_transform(test_x)
     test_y = test_y_scaler.fit_transform(test_y)
 
-    model = generate_nn_mlp_model(train_x, train_y, test_x, test_y, number_of_timestep_ahead, verbose=2)
+    model = generate_nn_mlp_model(train_x, train_y, test_x, test_y, number_of_timestep_ahead, verbose=0)
     forecast = make_forecasts(model, test_x, number_of_timestep_ahead)
 
     forecast = test_y_scaler.inverse_transform(forecast)
@@ -144,7 +145,7 @@ def perform_nn_lstm_prediction(train_x, train_y, test_x, test_y, number_of_times
     train_x = reshape_input_for_lstm(train_x, number_of_timestep_backward, number_of_input_parameters)
     test_x = reshape_input_for_lstm(test_x, number_of_timestep_backward, number_of_input_parameters)
 
-    model = generate_nn_lstm_model(train_x, train_y, test_x, test_y, number_of_timestep_ahead, verbose=2)
+    model = generate_nn_lstm_model(train_x, train_y, test_x, test_y, number_of_timestep_ahead, verbose=0)
     forecast = np.asarray(model.predict(test_x)).clip(0)
 
     forecast = test_y_scaler.inverse_transform(forecast)
@@ -177,29 +178,57 @@ def compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahe
 
     linear_regression_result = perform_linear_regression_prediction(train_x, train_y, test_x,
                                                                     number_of_timestep_ahead)
-    evaluate_method_results('linear-regression_' + os.path.splitext(filename)[0], test_y, linear_regression_result)
+    evaluate_method_results('_'.join(x_column_names) + '_linear-regression_' + os.path.splitext(filename)[0], test_y, linear_regression_result)
 
     arima_result = perform_arima_prediction(df, 'airly-pm1(t+0)', number_of_timestep_ahead)
-    evaluate_method_results('arima_' + os.path.splitext(filename)[0], test_y, arima_result)
+    evaluate_method_results('_'.join(x_column_names) + '_arima_' + os.path.splitext(filename)[0], test_y, arima_result)
 
     random_forest_regression_result = perform_random_forest_regression_prediction(train_x, train_y, test_x,
                                                                                   number_of_timestep_ahead)
-    evaluate_method_results('radnom-forest-regression_' + os.path.splitext(filename)[0], test_y,
+    evaluate_method_results('_'.join(x_column_names) + '_radnom-forest-regression_' + os.path.splitext(filename)[0], test_y,
                             random_forest_regression_result)
 
     nn_lstm_regression_result = perform_nn_lstm_prediction(train_x, train_y, test_x, test_y,
                                                            number_of_timestep_ahead, number_of_timestep_backward,
                                                            len(x_column_names))
-    evaluate_method_results('nn-lstm-regression_' + os.path.splitext(filename)[0], test_y, nn_lstm_regression_result)
+    evaluate_method_results('_'.join(x_column_names) + '_nn-lstm-regression_' + os.path.splitext(filename)[0], test_y, nn_lstm_regression_result)
 
     nn_mlp_regression_result = perform_nn_mlp_prediction(train_x, train_y, test_x, test_y, number_of_timestep_ahead)
-    evaluate_method_results('nn-mlp-regression_' + os.path.splitext(filename)[0], test_y, nn_mlp_regression_result)
+    evaluate_method_results('_'.join(x_column_names) + '_nn-mlp-regression_' + os.path.splitext(filename)[0], test_y, nn_mlp_regression_result)
+
+def compare_methods_once(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names):
+    persistence_model_result = perform_persistence_model_prediction(df, 'airly-pm1(t-1)', len(test_y),
+                                                                    number_of_timestep_ahead)
+    evaluate_method_results('persistence-model-regression_' + os.path.splitext(filename)[0], test_y,
+                            persistence_model_result)
+
+    arima_result = perform_arima_prediction(df, 'airly-pm1(t+0)', number_of_timestep_ahead)
+    evaluate_method_results('_'.join(x_column_names) + '_arima_' + os.path.splitext(filename)[0], test_y, arima_result)
+
+def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names):
+    linear_regression_result = perform_linear_regression_prediction(train_x, train_y, test_x,
+                                                                    number_of_timestep_ahead)
+    evaluate_method_results('_'.join(x_column_names) + '_linear-regression_' + os.path.splitext(filename)[0], test_y, linear_regression_result)
+
+    random_forest_regression_result = perform_random_forest_regression_prediction(train_x, train_y, test_x,
+                                                                                  number_of_timestep_ahead)
+    evaluate_method_results('_'.join(x_column_names) + '_radnom-forest-regression_' + os.path.splitext(filename)[0], test_y,
+                            random_forest_regression_result)
+
+    nn_lstm_regression_result = perform_nn_lstm_prediction(train_x, train_y, test_x, test_y,
+                                                           number_of_timestep_ahead, number_of_timestep_backward,
+                                                           len(x_column_names))
+    evaluate_method_results('_'.join(x_column_names) + '_nn-lstm-regression_' + os.path.splitext(filename)[0], test_y, nn_lstm_regression_result)
+
+    nn_mlp_regression_result = perform_nn_mlp_prediction(train_x, train_y, test_x, test_y, number_of_timestep_ahead)
+    evaluate_method_results('_'.join(x_column_names) + '_nn-mlp-regression_' + os.path.splitext(filename)[0], test_y, nn_mlp_regression_result)
+
 
 
 if __name__ == "__main__":
     directory = '../data'
     for filename in os.listdir(directory):
-        if filename == 'pollution.csv':
+        if filename == 'pollution.csv' or filename == 'raw-626.csv' or filename == 'raw-210.csv':
             continue
         csv = os.path.join(directory, filename)
         df = read_csv(csv, header=0, index_col=0)
@@ -207,21 +236,36 @@ if __name__ == "__main__":
 
         df = simple_fill_missing_values(df)
 
+        #plot_all_time_series_from_dataframe(df)
+
         number_of_timestep_ahead = 24
         number_of_timestep_backward = 24
 
-        x_column_names = df.columns
-        y_column_names = ['airly-pm1']
+        predicted_column = 'airly-pm1'
+        columns = df.columns.tolist()
+        columns.remove(predicted_column)
 
-        df = transform_dataframe_to_supervised(df, x_column_names, y_column_names, number_of_timestep_ahead,
-                                               number_of_timestep_backward)
+        i = 0
 
-        df = df.dropna()
+        for combinations_len in range(len(columns)):
+            for x_column_combination in itertools.combinations(columns, combinations_len  + 1):
+                x_column_names = list(x_column_combination)
+                x_column_names.append(predicted_column)
+                y_column_names = [predicted_column]
 
-        train_x, train_y, test_x, test_y = split_timeseries_set_on_test_train(df.values,
-                                                                              len(
-                                                                                  x_column_names) * number_of_timestep_backward,
-                                                                              len(
-                                                                                  y_column_names) * number_of_timestep_ahead)
+                new_df = transform_dataframe_to_supervised(df, x_column_names, y_column_names, number_of_timestep_ahead,
+                                                       number_of_timestep_backward)
 
-        compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names)
+                new_df = new_df.dropna()
+
+                train_x, train_y, test_x, test_y = split_timeseries_set_on_test_train(new_df.values,
+                                                                                      len(
+                                                                                          x_column_names) * number_of_timestep_backward,
+                                                                                      len(
+                                                                                          y_column_names) * number_of_timestep_ahead)
+                if i == 0:
+                    compare_methods_once(new_df, train_x, train_y, test_x, test_y, number_of_timestep_ahead,
+                                              number_of_timestep_backward, filename, x_column_names)
+
+                compare_methods_each_iter(new_df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names)
+                i+=1

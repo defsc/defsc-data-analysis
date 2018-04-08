@@ -55,10 +55,7 @@ def plot_cross_corelation_between_all_parameters_accross_the_time(df, predicted_
 
 
 def plot_all_time_series_from_dataframe(df, save_to_file=False, filename=""):
-    for time_series in df.columns:
-        ts = df[time_series]
-        pyplot.title(time_series)
-        ts.plot()
+    df.plot(subplots=True)
 
     generate_chart(save_to_file, 'dataframe_timeseries', filename)
 
