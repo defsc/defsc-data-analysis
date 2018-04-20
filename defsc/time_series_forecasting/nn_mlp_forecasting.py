@@ -6,11 +6,12 @@ def generate_nn_mlp_model(train_x, train_y, test_x, test_y, number_of_hours_ahea
 
     model = Sequential()
 
-    model.add(Dense(20, input_dim=train_x.shape[1], activation='relu'))
+    model.add(Dense(2 * number_of_hours_ahead, input_dim=train_x.shape[1]))
     model.add(Dense(number_of_hours_ahead))
     model.compile(loss='mae', optimizer='adam')
 
-    model.fit(train_x, train_y, epochs=epoch, batch_size=batch_size, validation_data=(test_x, test_y), verbose=verbose,
+    #model.fit(train_x, train_y, epochs=epoch, batch_size=batch_size, validation_data=(test_x, test_y), verbose=verbose,
+    model.fit(train_x, train_y, epochs=epoch, verbose=verbose,
               shuffle=False)
 
     return model

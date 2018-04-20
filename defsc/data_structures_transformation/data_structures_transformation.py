@@ -23,12 +23,12 @@ def transform_dataframe_to_supervised(old_df, x_column_names, y_column_names, nu
     return new_df
 
 
-def split_timeseries_set_on_test_train(df_values, x_length, y_length, percantage_of_train_data=0.8):
+def split_timeseries_set_on_test_train(df_values, x_length, y_length, number_of_timestep_ahead, percantage_of_train_data=0.8):
     number_of_rows = df_values.shape[0]
     number_of_train_rows = int(number_of_rows * percantage_of_train_data)
 
-    train_x = df_values[:number_of_train_rows, :x_length]
-    train_y = df_values[:number_of_train_rows, -y_length:]
+    train_x = df_values[:number_of_train_rows-number_of_timestep_ahead, :x_length]
+    train_y = df_values[:number_of_train_rows-number_of_timestep_ahead, -y_length:]
 
     test_x = df_values[number_of_train_rows:, :x_length]
     test_y = df_values[number_of_train_rows:, -y_length:]

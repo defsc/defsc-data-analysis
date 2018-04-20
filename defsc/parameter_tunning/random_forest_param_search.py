@@ -16,7 +16,7 @@ from defsc.parameter_tunning import report
 def multioutput_random_forest_regression_params_search(train_x, train_y):
     pipe = Pipeline([('reg', MultiOutputRegressor(RandomForestRegressor()))])
 
-    param_grid = {'reg__estimator__n_estimators': [int(x) for x in np.linspace(start=200, stop=2000, num=10)],
+    param_grid = {'reg__estimator__n_estimators': [int(x) for x in np.linspace(start=200, stop=2000, num=100)],
                   'reg__estimator__max_features': [1, 3, 10, 'auto', 'sqrt'],
                   'reg__estimator__max_depth': [3, None],
                   'reg__estimator__min_samples_split': [2, 3, 10],
@@ -25,7 +25,7 @@ def multioutput_random_forest_regression_params_search(train_x, train_y):
 
     grid_search(pipe, param_grid, train_x, train_y)
 
-    random_grid = {'reg__estimator__n_estimators': [int(x) for x in np.linspace(start=200, stop=2000, num=10)],
+    random_grid = {'reg__estimator__n_estimators': [int(x) for x in np.linspace(start=200, stop=2000, num=100)],
                    'reg__estimator__max_features': ['auto', 'sqrt'],
                    'reg__estimator__max_depth': [int(x) for x in np.linspace(10, 110, num=11)] + [None],
                    'reg__estimator__min_samples_split': [2, 5, 10],
@@ -75,7 +75,7 @@ def report(results, n_top=3):
 
 
 if __name__ == "__main__":
-    csv = '../data/raw-210.csv'
+    csv = '../data/multivariate-time-series/raw-210.csv'
     df = read_csv(csv, header=0, index_col=0)
     df.index = to_datetime(df.index)
 

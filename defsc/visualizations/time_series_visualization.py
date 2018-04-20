@@ -7,7 +7,7 @@ from pandas.tools.plotting import autocorrelation_plot
 from operator import sub
 from operator import abs
 
-DIR_WITH_PLOTS = '../results/'
+DIR_WITH_PLOTS = './results/'
 
 def generate_chart(save_to_file, method_id, analysis_id ):
     if save_to_file:
@@ -64,7 +64,7 @@ def plot_all_time_series_decomposition_from_dataframe(df, save_to_file=False, fi
     for column in df.columns:
         ts = df[column].dropna()
 
-        decomposition = sm.tsa.seasonal_decompose(ts, model='additive')
+        decomposition = sm.tsa.seasonal_decompose(ts, model='additive', freq=24*30*12)
 
         fig = decomposition.plot()
         fig.suptitle(ts.name)
@@ -72,10 +72,12 @@ def plot_all_time_series_decomposition_from_dataframe(df, save_to_file=False, fi
     generate_chart(save_to_file, 'dataframe_timeseries_decomposition', filename)
 
 
-def plot_heat_map_of_correlation_coefficients(df, save_to_file=False, filename=""):
-    corr_df = df.corr(method='pearson')
+def plot_heat_map_of_correlation_coefficients(df, save_to_file=False, filename="", method='pearson',title='corelation heatmap'):
+    corr_df = df.corr(method=method)
 
-    sns.heatmap(corr_df, annot=True)
+    ax = pyplot.axes()
+    sns.heatmap(corr_df, annot=True, ax=ax)
+    ax.set_title(title)
 
     generate_chart(save_to_file, 'heatmap_of_correlation_coefficients', filename)
 
@@ -104,11 +106,11 @@ def plot_forecasting_result(y_real, y_pred, save_to_file=False, filename=""):
         flattened_y_true = y_real[prediction_step, :]
         flattened_y_pred = y_pred[prediction_step, :]
 
-        if (any(flattened_y_true)):
-            pyplot.plot(range(len(flattened_y_true)), flattened_y_true, range(len(flattened_y_pred)), flattened_y_pred, label=['true', 'pred'])
-            pyplot.legend(['true', 'pred'], loc='upper center')
+        #if (any(flattened_y_true)):
+        pyplot.plot(range(len(flattened_y_true)), flattened_y_true, range(len(flattened_y_pred)), flattened_y_pred, label=['true', 'pred'])
+        pyplot.legend(['true', 'pred'], loc='upper center')
 
-            generate_chart(save_to_file, 'forecast_for_each_prediction_step' + str(prediction_step), filename)
+        generate_chart(save_to_file, 'forecast_for_each_prediction_step' + str(prediction_step), filename)
 
 def plot_forecasting_result_v2(y_real, y_pred, save_to_file=False, filename=""):
 
@@ -163,3 +165,11 @@ def plot_forecast_result_as_heat_map(y_real, y_pred, save_to_file=False, filenam
     sns.heatmap(abs_diff, vmin=np.min(abs_diff), vmax=np.max(abs_diff), yticklabels=15)
 
     generate_chart(save_to_file, 'forecast_heatmap', filename)
+
+def scatter_plot_of_the_value_of_one_parameter_in_dependence_of_another(df, first_param_name, second_param_name,
+                                                                        save_to_file=False, filename=""):
+    pyplot.scatter(df[first_param_name], df[second_param_name])
+    pyplot.xlabel(first_param_name)
+    pyplot.ylabel(second_param_name)
+
+    generate_chart(save_to_file, 'parameter_dependence', filename)

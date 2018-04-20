@@ -15,7 +15,8 @@ def generate_nn_lstm_model(train_x, train_y, test_x, test_y, number_of_hours_ahe
     model.add(Dense(number_of_hours_ahead))
     model.compile(loss='mae', optimizer='adam')
 
-    history = model.fit(train_x, train_y, epochs=50, batch_size=72, validation_data=(test_x, test_y), verbose=verbose,
+    #history = model.fit(train_x, train_y, epochs=50, batch_size=72, validation_data=(test_x, test_y), verbose=verbose,
+    history = model.fit(train_x, train_y, epochs=50, batch_size=72, verbose=verbose,
                       shuffle=False)
 
     return model
