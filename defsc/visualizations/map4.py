@@ -131,10 +131,10 @@ def plot_values_on_stations(point_to_value, title, dir, new_filename):
 
     plt.title(title)
 
-    if not os.path.exists("./results/" + dir):
-        os.makedirs("./results/" + dir)
+    if not os.path.exists("./results3/" + dir):
+        os.makedirs("./results3/" + dir)
 
-    plt.savefig("./results/" + dir + "/" + new_filename + ".png")
+    plt.savefig("./results3/" + dir + "/" + new_filename + ".png")
     plt.close()
 
 def generate_list_of_correlations_to_check(dir):
@@ -167,10 +167,35 @@ def generate_list_of_correlations_to_check(dir):
     print(len(correlations_to_check))
     return correlations_to_check
 
+
+def split_df_into_hours(df):
+    hours = {}
+    # Every hour
+    for i in range(24):
+        hours[str(i)] = df[df.index.hour == i]
+
+    # Every n-hour
+    # n = 4
+    # for i in range(24//n):
+    #     hours[str(n*i) + '-' + str(n*i+n-1)] = df[(df.index.hour >= n*i) & (df.index.hour < n*(i+1))]
+    return hours
+
+
+def split_into_months(hours):
+    all_months = {}
+    for h, h_df in hours.items():
+        months = {n: g
+              for n, g in h_df.groupby(TimeGrouper('M'))}
+        for month, m_df in months.items():
+            all_months[str(month) + "|" + str(h)] = m_df
+    return all_months
+
+
+
 if __name__ == "__main__":
     directory = '../data'
-    correlations_to_check = generate_list_of_correlations_to_check(directory)
-    # correlations_to_check = [['ow-hum', 'airly-pm25']]
+    # correlations_to_check = generate_list_of_correlations_to_check(directory)
+    correlations_to_check = [['here-traffic-speed', 'airly-pm25']]
     global_correlations = {}
 
     for filename in os.listdir(directory):
@@ -184,19 +209,21 @@ if __name__ == "__main__":
         df = df.apply(lambda ts: ts.interpolate(method='nearest'))
         df = df.apply(lambda ts: ts.resample('1H').nearest())
 
-        months = {n: g
-                  for n, g in df.groupby(TimeGrouper('M'))}
+        hours = split_df_into_hours(df)
+        months = split_into_months(hours)
+        # months = {n: g
+        #           for n, g in df.groupby(TimeGrouper('M'))}
 
         correlations = {}
 
-        sorted_months = sorted(months.keys())
-        for k in sorted_months:
-            df_per_month = months[k]
+        sorted_hours = sorted(months.keys())
+        for k in sorted_hours:
+            df_per_hour = months[k]
 
             for pair_of_columns in correlations_to_check:
-                if not pair_of_columns[0] in df_per_month.columns or not pair_of_columns[1] in df_per_month.columns:
+                if not pair_of_columns[0] in df_per_hour.columns or not pair_of_columns[1] in df_per_hour.columns:
                     continue
-                correlation = df_per_month[pair_of_columns[0]].corr(df_per_month[pair_of_columns[1]])
+                correlation = df_per_hour[pair_of_columns[0]].corr(df_per_hour[pair_of_columns[1]])
                 if np.isnan(correlation) or abs(correlation) < 0.3:
                     correlation = 0
                 if (pair_of_columns[0], pair_of_columns[1]) not in correlations:
@@ -204,25 +231,25 @@ if __name__ == "__main__":
                 else:
                     correlations[(pair_of_columns[0], pair_of_columns[1])].append(correlation)
 
-        months_labels = []
-        for month_sample in sorted_months:
-            months_labels.append(str(month_sample.year) + "-" + str(month_sample.month))
+        # months_labels = []
+        # for hour_sample in sorted_hours:
+        #     months_labels.append(str(hour_sample.year) + "-" + str(hour_sample.month))
 
         for parameters, corrs in correlations.items():
             if not parameters in global_correlations:
                 global_correlations[parameters] = {}
-            for corr, month in zip(corrs, months_labels):
-                if not month in global_correlations[parameters]:
-                    global_correlations[parameters][month] = {}
-                global_correlations[parameters][month][lom_id] = corr
+            for corr, hour in zip(corrs, sorted_hours):
+                if not hour in global_correlations[parameters]:
+                    global_correlations[parameters][hour] = {}
+                global_correlations[parameters][hour][lom_id] = corr
 
     counter = 1
-    for parameters, months in global_correlations.items():
+    for parameters, some_hours in global_correlations.items():
         print(str(counter) + "/" + str(len(correlations_to_check)))
         month_nr = 1
-        for month, values in months.items():
-            print("\t" + str(month_nr) + "/" + str(len(months)))
-            plot_values_on_stations(values, "Correlation of " + str(parameters) + " in " + month, parameters[0] + "|" + parameters[1] ,month)
+        for hour, values in some_hours.items():
+            print("\t" + str(month_nr) + "/" + str(len(some_hours)))
+            plot_values_on_stations(values, "Correlation of " + str(parameters) + " in " + hour, parameters[0] + "|" + parameters[1], hour)
             month_nr += 1
         counter += 1
 
