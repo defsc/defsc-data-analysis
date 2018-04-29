@@ -22,6 +22,32 @@ def transform_dataframe_to_supervised(old_df, x_column_names, y_column_names, nu
 
     return new_df
 
+def transform_dataframe_to_supervised(old_df, x_history_column_names, x_forecast_column_names, y_column_names, number_of_timestep_ahead,
+                                      number_of_timestep_backward):
+    cols, names = list(), list()
+
+    # x_hisotry
+    for lag in range(number_of_timestep_backward, 0, -1):
+        for time_series_label in x_history_column_names:
+            cols.append(old_df[time_series_label].shift(lag))
+            names.append('{}(t-{})'.format(time_series_label, lag))
+
+    # x_forecast
+    for lag in range(0, number_of_timestep_ahead):
+        for time_series_label in x_forecast_column_names:
+            cols.append(old_df[time_series_label].shift(-lag))
+            names.append('{}(t+{})'.format(time_series_label, lag))
+    # y
+    for lag in range(0, number_of_timestep_ahead):
+        for time_series_label in y_column_names:
+            cols.append(old_df[time_series_label].shift(-lag))
+            names.append('{}(t+{})'.format(time_series_label, lag))
+
+    new_df = concat(cols, axis=1)
+    new_df.columns = names
+
+    return new_df
+
 
 def split_timeseries_set_on_test_train(df_values, x_length, y_length, number_of_timestep_ahead, percantage_of_train_data=0.8):
     number_of_rows = df_values.shape[0]

@@ -3,6 +3,7 @@ import matplotlib.pyplot as pyplot
 import numpy as np
 import seaborn as sns
 import statsmodels.api as sm
+from pandas import scatter_matrix, cut
 from pandas.tools.plotting import autocorrelation_plot
 from operator import sub
 from operator import abs
@@ -19,8 +20,8 @@ def generate_chart(save_to_file, method_id, analysis_id ):
 
     pyplot.close('all')
 
-def crosscorr(datax, datay, lag=0):
-    return datax.corr(datay.shift(lag))
+def crosscorr(datax, datay, lag=0, method='pearson'):
+    return datax.corr(datay.shift(lag), method=method)
 
 def plot_timeseries(ts, save_to_file=False, filename=""):
     ts.plot()
@@ -35,7 +36,7 @@ def plot_autocorelation_of_time_series(df, time_series_name, save_to_file=False,
     generate_chart(save_to_file, 'autocorelation_of_dataframetime_series', filename)
 
 
-def plot_cross_corelation_between_all_parameters_accross_the_time(df, predicted_parameter, lag, save_to_file=False, filename=""):
+def plot_cross_corelation_between_all_parameters_accross_the_time(df, predicted_parameter, lag, method, save_to_file=False, filename=""):
     number_of_plot_rows = np.floor(len(df.columns.values) ** 0.5).astype(int)
     number_of_plot_cols = np.ceil(1. * len(df.columns.values) / number_of_plot_rows).astype(int)
 
@@ -45,7 +46,7 @@ def plot_cross_corelation_between_all_parameters_accross_the_time(df, predicted_
     for col_name in df.columns.values:
         correlation_coefficients_history = []
         for inner_lag in range(lag):
-            correlation_coefficients_history.append(crosscorr(df[predicted_parameter], df[col_name], inner_lag))
+            correlation_coefficients_history.append(crosscorr(df[predicted_parameter], df[col_name], inner_lag, method=method))
         ax = fig.add_subplot(number_of_plot_rows, number_of_plot_cols, i)
         ax.plot(correlation_coefficients_history)
         ax.set_title(col_name)
@@ -173,3 +174,24 @@ def scatter_plot_of_the_value_of_one_parameter_in_dependence_of_another(df, firs
     pyplot.ylabel(second_param_name)
 
     generate_chart(save_to_file, 'parameter_dependence', filename)
+
+def scatter_matrix_plot(df, first_param_name, second_param_name,
+                        save_to_file=False, filename=""):
+
+    scatter_matrix(df, figsize=(26, 26))
+
+    generate_chart(save_to_file, 'scatter_matrix', filename)
+
+def box_plot(df, column, by, number_of_buckets=5,
+             save_to_file=False, filename=""):
+
+    new_column_name = 'groupped_' + by
+    buckets_array = np.linspace(df[by].min(), df[by].max(), number_of_buckets)
+    modified_df = df
+
+    modified_df[new_column_name] = cut(modified_df[by], buckets_array)
+    modified_df.boxplot(column=column, by=new_column_name)
+
+    generate_chart(save_to_file, 'box_plot', filename)
+
+

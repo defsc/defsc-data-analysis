@@ -1,6 +1,6 @@
 import warnings
 
-from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler
+from sklearn.preprocessing import MinMaxScaler
 
 from defsc.time_series_forecasting.svr import generate_svr_regression_model
 
@@ -31,7 +31,7 @@ from defsc.visualizations.time_series_visualization import plot_forecast_result_
 from defsc.visualizations.time_series_visualization import plot_forecast_result_as_heat_map
 from defsc.utils.utils import print_number_of_nan_values
 from defsc.filtering.time_series_filtering import testGauss
-from pandas import Series
+from pandas import Series, concat, DataFrame
 
 import matplotlib.pyplot as pyplot
 import itertools
@@ -104,8 +104,13 @@ def perform_arima_prediction(df, predicted_ts_name, number_of_timestep_ahead,p=7
     return arima_result
 
 
-def perform_linear_regression_prediction(train_x, train_y, test_x, number_of_timestep_ahead):
+def perform_linear_regression_prediction(df, train_x, train_y, test_x, number_of_timestep_ahead, print_coefficients=False):
     model = generate_linear_regression_model(train_x, train_y)
+
+    if print_coefficients:
+        coefficients = concat([DataFrame(df.columns[:-number_of_timestep_ahead]), DataFrame(np.transpose(model.estimators_[0].coef_))], axis=1)
+        print (coefficients)
+
     forecast = make_forecasts(model, test_x, number_of_timestep_ahead)
 
     return forecast
@@ -127,14 +132,10 @@ def perform_nn_mlp_prediction(train_x, train_y, test_x, test_y, number_of_timest
     train_x_scaler = MinMaxScaler(feature_range=(0,1))
     train_y_scaler = MinMaxScaler(feature_range=(0,1))
 
-
-    #train_x_scaler = MaxAbsScaler()
-    #train_y_scaler = MaxAbsScaler()
-
-
     train_x = train_x_scaler.fit_transform(train_x)
     train_y = train_y_scaler.fit_transform(train_y)
     test_x = train_x_scaler.transform(test_x)
+    test_y = train_y_scaler.transform(test_y)
 
     model = generate_nn_mlp_model(train_x, train_y, test_x, test_y, number_of_timestep_ahead, verbose=0)
     forecast = make_forecasts(model, test_x, number_of_timestep_ahead)
@@ -148,12 +149,11 @@ def perform_nn_lstm_prediction(train_x, train_y, test_x, test_y, number_of_times
                                number_of_input_parameters):
     train_x_scaler = MinMaxScaler(feature_range=(0,1))
     train_y_scaler = MinMaxScaler(feature_range=(0,1))
-    #train_x_scaler = MaxAbsScaler()
-    #train_y_scaler = MaxAbsScaler()
 
     train_x = train_x_scaler.fit_transform(train_x)
     train_y = train_y_scaler.fit_transform(train_y)
     test_x = train_x_scaler.transform(test_x)
+    test_y = train_y_scaler.transform(test_y)
 
     train_x = reshape_input_for_lstm(train_x, number_of_timestep_backward, number_of_input_parameters)
     test_x = reshape_input_for_lstm(test_x, number_of_timestep_backward, number_of_input_parameters)
@@ -194,8 +194,8 @@ def evaluate_method_results(id, y_real, y_predicted):
 
     #plot_histograms_of_forecasts_errors_per_hour(y_real, y_predicted, save_to_file=True, filename=id)
     #plot_forecast_result_as_heat_map(y_real, y_predicted, save_to_file=True, filename=id)
-    plot_forecasting_result_v2(y_real, y_predicted, save_to_file=True, filename=id)
-    #plot_forecasting_result(y_real, y_predicted, save_to_file=True, filename=id)
+    #plot_forecasting_result_v2(y_real, y_predicted, save_to_file=True, filename=id)
+    plot_forecasting_result(y_real, y_predicted, save_to_file=True, filename=id)
 
 def compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names, y_column_name):
     #plot_timeseries(df['airly-pm1(t+0)'], save_to_file=True,
@@ -211,7 +211,7 @@ def compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahe
     #evaluate_method_results('persistence-model-24-regression_' + os.path.splitext(filename)[0], test_y,
     #                        persistence_model_result)
 
-    linear_regression_result = perform_linear_regression_prediction(train_x, train_y, test_x,
+    linear_regression_result = perform_linear_regression_prediction(df, train_x, train_y, test_x,
                                                                     number_of_timestep_ahead)
     evaluate_method_results('_'.join(x_column_names) + '_linear-regression_' + os.path.splitext(filename)[0], test_y, linear_regression_result)
 

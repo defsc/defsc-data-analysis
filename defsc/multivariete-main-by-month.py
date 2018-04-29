@@ -65,15 +65,25 @@ if __name__ == "__main__":
 
         df = df.apply(lambda ts: ts.interpolate(method='nearest'))
         df = df.apply(lambda ts: ts.resample('1H').nearest())
-       # if 'ow-wnd-spd' in df.columns and 'ow-wnd-deg' in df.columns:
-       #     df['ow-wnd-x'] = df.apply(lambda row: row['ow-wnd-spd'] * math.cos(math.radians(row['ow-wnd-deg'])), axis=1)
-       #     df['ow-wnd-y'] = df.apply(lambda row: row['ow-wnd-spd'] * math.sin(math.radians(row['ow-wnd-deg'])), axis=1)
+
+        if 'ow-wnd-spd' in df.columns and 'ow-wnd-deg' in df.columns:
+            df['ow-wnd-x'] = df.apply(lambda row: row['ow-wnd-spd'] * math.cos(math.radians(row['ow-wnd-deg'])), axis=1)
+            df['ow-wnd-y'] = df.apply(lambda row: row['ow-wnd-spd'] * math.sin(math.radians(row['ow-wnd-deg'])), axis=1)
+
+        from matplotlib import pyplot
+        df['airly-pm1'].plot()
+        df['here-traffic-jam'].apply(lambda x: x * 10).plot()
+        pyplot.show()
 
         months = {n: g
                   for n, g in df.groupby(TimeGrouper('M'))}
 
         for k in sorted(months.keys()):
             df_per_month = months[k]
+
+            print(k)
+            print(df_per_month.index[0])
+            print(df_per_month.index[-1])
 
             df_per_month = df_per_month.loc[:, df_per_month.apply(Series.nunique) != 1]
             df_per_month = df_per_month.dropna(axis=1, how='all')
@@ -87,7 +97,7 @@ if __name__ == "__main__":
             if 'airly-pm1' in df_per_month.columns and 'here-traffic-jam' in df_per_month.columns:
 
                 y_column_names = ['airly-pm1']
-                x_column_names = ['airly-pm1', 'ow-wnd-spd','here-traffic-jam','airly-tmp']
+                x_column_names = ['airly-pm1', 'ow-wnd-x', 'here-traffic-jam', 'airly-tmp', 'ow-wnd-y', 'ow-press']
 
                 number_of_timestep_ahead = 24
                 number_of_timestep_backward = 24
@@ -102,7 +112,7 @@ if __name__ == "__main__":
                                                                                        x_column_names) * number_of_timestep_backward,
                                                                                    len(
                                                                                        y_column_names) * number_of_timestep_ahead,
-                                                                                      0,
+                                                                                      number_of_timestep_ahead,
                                                                                       percantage_of_train_data=0.80)
 
                 #import numpy
