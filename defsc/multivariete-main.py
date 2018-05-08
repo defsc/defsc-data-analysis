@@ -5,8 +5,9 @@ from pandas import read_csv, to_datetime
 
 from defsc.data_structures_transformation.data_structures_transformation import transform_dataframe_to_supervised, \
     split_timeseries_set_on_test_train
-from defsc.filtering.fill_missing_values import simple_fill_missing_values, fill_missing_values_with_truncate, \
-    drop_unnecessary_columns
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values, fill_missing_values_with_truncate, \
+    drop_unnecessary_columns, drop_missing_values, fill_missing_values_with_nearest, \
+    fill_missing_values_using_mean_before_after
 from defsc.time_series_forecasting.forecasts import perform_persistence_model_prediction, evaluate_method_results, \
     perform_arima_prediction, perform_linear_regression_prediction, perform_random_forest_regression_prediction, \
     perform_nn_lstm_prediction, perform_nn_mlp_prediction
@@ -25,7 +26,7 @@ def compare_methods_once(df, train_x, train_y, test_x, test_y, number_of_timeste
     #evaluate_method_results('_'.join(x_column_names) + '_arima_' + os.path.splitext(filename)[0], test_y, arima_result)
 
 def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names):
-    linear_regression_result = perform_linear_regression_prediction(train_x, train_y, test_x,
+    linear_regression_result = perform_linear_regression_prediction(df, train_x, train_y, test_x,
                                                                     number_of_timestep_ahead)
     evaluate_method_results('_'.join(x_column_names) + '_linear-regression_' + os.path.splitext(filename)[0], test_y, linear_regression_result)
 
@@ -36,7 +37,7 @@ def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_ti
 
     nn_lstm_regression_result = perform_nn_lstm_prediction(train_x, train_y, test_x, test_y,
                                                            number_of_timestep_ahead, number_of_timestep_backward,
-                                                           len(x_column_names))
+                                                           train_x.shape[1])
     evaluate_method_results('_'.join(x_column_names) + '_nn-lstm-regression_' + os.path.splitext(filename)[0], test_y, nn_lstm_regression_result)
 
     nn_mlp_regression_result = perform_nn_mlp_prediction(train_x, train_y, test_x, test_y, number_of_timestep_ahead)
@@ -45,9 +46,9 @@ def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_ti
 
 
 if __name__ == "__main__":
-    directory = './data/multivariate-time-series'
+    directory = './data/multivariate-time-series-may'
     for filename in os.listdir(directory):
-        if filename == 'pollution.csv' or filename == 'raw-626.csv' or filename == 'raw-210.csv':
+        if filename == 'pollution.csv':
             continue
         csv = os.path.join(directory, filename)
         df = read_csv(csv, header=0, index_col=0)
@@ -58,16 +59,20 @@ if __name__ == "__main__":
 
         y_column_names = ['airly-pm10']
         x_history_column_names = ['airly-pm10']
-        x_forecast_column_names = ['ow-wnd-spd']
+        x_forecast_column_names = ['ow-wnd-spd','ow-tmp','ow-press', 'ow-hum']
 
-        df = fill_missing_values_with_truncate(df)
-        df = drop_unnecessary_columns(df, x_history_column_names + x_forecast_column_names)
+        if not all(column in df.columns for column in (x_history_column_names + x_forecast_column_names)):
+            print(filename)
+            print('Not all columns')
+            continue
 
-        #plot_all_time_series_from_dataframe(df)
-        #plot_all_time_series_decomposition_from_dataframe(df)
+        df = drop_missing_values(df, x_history_column_names + x_forecast_column_names, start='2017-09-23 00:00:00', end='2018-04-30 23:00:00')
 
-        #if not all(column in df.columns for column in (x_history_column_names + x_forecast_column_names)):
-        #    continue
+        if not all(column in df.columns for column in (x_history_column_names + x_forecast_column_names)):
+            print(filename)
+            print('Not all columns after dropping missing values')
+            continue
+
 
         new_df = transform_dataframe_to_supervised(df, x_history_column_names, x_forecast_column_names, y_column_names, number_of_timestep_ahead,
                                                number_of_timestep_backward)

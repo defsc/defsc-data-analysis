@@ -3,7 +3,7 @@ from pandas import read_csv, to_datetime
 
 from defsc.data_structures_transformation.data_structures_transformation import transform_dataframe_to_supervised, \
     split_timeseries_set_on_test_train
-from defsc.filtering.fill_missing_values import simple_fill_missing_values
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values
 from defsc.time_series_forecasting.forecasts import perform_arima_prediction, evaluate_method_results
 
 if __name__ == "__main__":

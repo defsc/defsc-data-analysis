@@ -1,11 +1,15 @@
 import os
 
 import itertools
-from pandas import read_csv, to_datetime
+
+from fancyimpute import KNN
+from pandas import read_csv, to_datetime, DataFrame, date_range, DatetimeIndex
+import numpy as np
 
 from defsc.data_structures_transformation.data_structures_transformation import transform_dataframe_to_supervised, \
     split_timeseries_set_on_test_train
-from defsc.filtering.fill_missing_values import simple_fill_missing_values
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values, drop_missing_values, \
+    fill_missing_values_using_mean_before_after
 from defsc.time_series_forecasting.forecasts import perform_persistence_model_prediction, evaluate_method_results, \
     perform_arima_prediction, perform_linear_regression_prediction, perform_random_forest_regression_prediction, \
     perform_nn_lstm_prediction, perform_nn_mlp_prediction
@@ -44,28 +48,24 @@ def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_ti
 
 
 if __name__ == "__main__":
-    directory = './data/multivariate-time-series'
+    directory = './data/multivariate-time-series-may'
     for filename in os.listdir(directory):
         print(filename)
 
-        if filename == 'pollution.csv' or filename == 'raw-626.csv' or filename == 'raw-210.csv':
+        if (filename != 'raw-177.csv'):
             continue
+
         csv = os.path.join(directory, filename)
         df = read_csv(csv, header=0, index_col=0)
         df.index = to_datetime(df.index)
+        df = df.astype(float)
 
-        df = df.apply(lambda ts: ts.interpolate(method='nearest'))
-        df = df.apply(lambda ts: ts.resample('1H').nearest())
+        #print(df.head(5))
 
-        #df['here-traffic-speed'] = df['here-traffic-speed'] * 100
-        #df['airly-pm1'] = df['airly-pm1'] * 1.8
+        df = drop_missing_values(df, ['airly-pm10','airly-pm1','ow-wnd-spd','ow-tmp','ow-press', 'ow-hum','here-traffic-jam'], start='2017-09-23 00:00:00', end='2018-04-30 23:00:00', drop_column_factor=0.8)
+        #df = drop_missing_values(df, df.columns,start='2017-09-23 00:00:00', end='2018-04-30 23:00:00', drop_column_factor=0.8)
 
-
-        if 'ow-vis' in df.columns and 'here-traffic-speed' in df.columns:
-            df['airly-pm10'].plot()
-            pyplot.draw()
-            df['airly-pm1'].plot()
-            pyplot.draw()
-
+        print(df.isnull().sum())
+        df = df.reset_index()
+        df.plot(subplots=True)
         pyplot.show()
-

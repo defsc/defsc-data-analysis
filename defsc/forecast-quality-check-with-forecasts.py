@@ -5,8 +5,8 @@ import itertools
 from pandas import read_csv, to_datetime, TimeGrouper, Series, concat
 
 from defsc.data_structures_transformation.data_structures_transformation import transform_dataframe_to_supervised
-from defsc.filtering.fill_missing_values import simple_fill_missing_values, add_column_with_number_of_year, \
-    fill_missing_values_with_truncate, drop_unnecessary_columns
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values, add_column_with_number_of_year, \
+    fill_missing_values_with_truncate, drop_unnecessary_columns, drop_missing_values
 from defsc.time_series_forecasting.forecasts import perform_persistence_model_prediction, evaluate_method_results, \
     perform_arima_prediction, perform_linear_regression_prediction, perform_random_forest_regression_prediction, \
     perform_nn_lstm_prediction, perform_nn_mlp_prediction
@@ -36,7 +36,7 @@ def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_ti
 
     nn_lstm_regression_result = perform_nn_lstm_prediction(train_x, train_y, test_x, test_y,
                                                            number_of_timestep_ahead, number_of_timestep_backward,
-                                                           len(x_column_names))
+                                                           train_x.shape[1])
     evaluate_method_results(id + '_nn-lstm-regression', test_y,
                             nn_lstm_regression_result)
 
@@ -46,13 +46,13 @@ def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_ti
 
 
 if __name__ == "__main__":
-    directory = './data/multivariate-time-series'
+    directory = './data/multivariate-time-series-may'
 
-    train_period = 15 * 24
+    train_period = 90 * 24
     number_of_models = 20
 
     for filename in os.listdir(directory):
-        if filename == 'pollution.csv':
+        if filename == 'pollution.csv' or filename == 'raw-626.csv' or filename == 'raw-1124.csv' or filename == 'raw-180.csv' or filename == 'raw-226.csv' or filename == 'raw-209.csv' or filename == 'raw-808.csv ' or filename == 'raw-147.csv' or filename == 'raw-181.csv' or filename == 'raw-205.csv' or filename == 'raw-216.csv' or filename == 'raw-171.csv' or filename == 'raw-407.csv':
             continue
 
         csv = os.path.join(directory, filename)
@@ -63,19 +63,25 @@ if __name__ == "__main__":
             df['ow-wnd-x'] = df.apply(lambda row: row['ow-wnd-spd'] * math.cos(math.radians(row['ow-wnd-deg'])), axis=1)
             df['ow-wnd-y'] = df.apply(lambda row: row['ow-wnd-spd'] * math.sin(math.radians(row['ow-wnd-deg'])), axis=1)
 
-        y_column_names = ['airly-pm10']
+        y_column_names = ['airly-pm25']
         #x_column_names = ['airly-pm1', 'ow-wnd-x', 'here-traffic-jam', 'airly-tmp', 'ow-wnd-y', 'ow-press']
-        x_history_column_names = ['airly-pm10']
-        x_forecast_column_names = ['ow-wnd-spd', 'airly-tmp']
+        x_history_column_names = ['airly-pm25']
+        x_forecast_column_names = ['ow-wnd-spd', 'ow-tmp', 'ow-hum', 'ow-press']
         #x_forecast_column_names = ['airly-tmp','ow-wnd-x','ow-wnd-y','here-traffic-jam','airly-hum','airly-press']
 
-        number_of_timestep_ahead = 6
-        number_of_timestep_backward = 6
-
-        df = fill_missing_values_with_truncate(df)
-        df = drop_unnecessary_columns(df, x_history_column_names + x_forecast_column_names)
+        number_of_timestep_ahead = 24
+        number_of_timestep_backward = 24
 
         if not all(column in df.columns for column in (x_history_column_names + x_forecast_column_names)):
+            print(filename)
+            print('Not all columns')
+            continue
+
+        df = drop_missing_values(df, x_history_column_names + x_forecast_column_names, start='2017-09-23 00:00:00', end='2018-04-30 23:00:00')
+
+        if not all(column in df.columns for column in (x_history_column_names + x_forecast_column_names)):
+            print(filename)
+            print('Not all columns after dropping missing values')
             continue
 
         x_length = len(x_history_column_names) * number_of_timestep_backward + len(x_forecast_column_names) * number_of_timestep_ahead
@@ -87,6 +93,10 @@ if __name__ == "__main__":
 
         for i in range(number_of_models):
             partial_df = df.iloc[step * i:step * i + block_length][:]
+
+            #from matplotlib import pyplot
+            #partial_df.plot(subplots=True)
+            #pyplot.show()
 
             new_df = transform_dataframe_to_supervised(partial_df, x_history_column_names, x_forecast_column_names, y_column_names,
                                                        number_of_timestep_ahead,

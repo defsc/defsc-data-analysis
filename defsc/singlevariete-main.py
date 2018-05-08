@@ -6,7 +6,7 @@ import statsmodels.api as sm
 
 from defsc.data_structures_transformation.data_structures_transformation import transform_dataframe_to_supervised, \
     split_timeseries_set_on_test_train
-from defsc.filtering.fill_missing_values import simple_fill_missing_values
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values
 from defsc.time_series_forecasting.forecasts import perform_persistence_model_prediction, evaluate_method_results, \
     perform_arima_prediction, perform_linear_regression_prediction, perform_random_forest_regression_prediction, \
     perform_nn_lstm_prediction, perform_nn_mlp_prediction, compare_methods

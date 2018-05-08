@@ -3,7 +3,7 @@
 
 #matplotlib.use('Qt5Agg')
 
-from defsc.filtering.fill_missing_values import simple_fill_missing_values
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values
 
 import numpy as np
 from pandas import read_csv, to_datetime

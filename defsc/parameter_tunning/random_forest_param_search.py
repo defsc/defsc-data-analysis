@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline
 
 from defsc.data_structures_transformation.data_structures_transformation import split_timeseries_set_on_test_train, \
     transform_dataframe_to_supervised
-from defsc.filtering.fill_missing_values import simple_fill_missing_values
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values
 from defsc.parameter_tunning import report
 
 

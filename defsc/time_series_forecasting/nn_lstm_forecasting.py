@@ -4,10 +4,9 @@ from keras.layers import LSTM
 
 
 def reshape_input_for_lstm(x, number_of_hours_backward, number_of_x_vars):
-    reshaped_x = x.reshape((x.shape[0], number_of_hours_backward, number_of_x_vars))
+    reshaped_x = x.reshape((x.shape[0], 1, number_of_x_vars))
 
     return reshaped_x
-
 
 def generate_nn_lstm_model(train_x, train_y, test_x, test_y, number_of_hours_ahead, verbose=2):
     model = Sequential()

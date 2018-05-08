@@ -6,7 +6,7 @@ import statsmodels.api as sm
 
 from defsc.data_structures_transformation.data_structures_transformation import transform_dataframe_to_supervised, \
     split_timeseries_set_on_test_train
-from defsc.filtering.fill_missing_values import simple_fill_missing_values
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values
 from defsc.time_series_forecasting.forecasts import perform_persistence_model_prediction, evaluate_method_results, \
     perform_arima_prediction, perform_linear_regression_prediction, perform_random_forest_regression_prediction, \
     perform_nn_lstm_prediction, perform_nn_mlp_prediction, compare_methods, perform_svr_regression_prediction
@@ -46,7 +46,7 @@ def perform_preditction(df):
                                                                                   number_of_timestep_ahead)
     nn_lstm_regression_result = perform_nn_lstm_prediction(train_x, train_y, test_x, test_y,
                                                            number_of_timestep_ahead, number_of_timestep_backward,
-                                                           len(x_column_names))
+                                                           train_x.shape[1])
 
     nn_mlp_regression_result = perform_nn_mlp_prediction(train_x, train_y, test_x, test_y, number_of_timestep_ahead)
 

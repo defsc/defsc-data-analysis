@@ -14,15 +14,15 @@ for filename in itertools.chain(listdir_fullpath('./filtered_csv/'), listdir_ful
 	df = read_csv(filename, header=0, index_col=0)
 	df.index = to_datetime(df.index)
 
- 	columns = df.columns
+	columns = df.columns
 
- 	for column in columns:
- 		if df[column].isnull().sum()/float(df[column].size) > 0.7:
- 			df = df.drop(column, axis=1)
+	for column in columns:
+		if df[column].isnull().sum()/float(df[column].size) > 0.7:
+			df = df.drop(column, axis=1)
 
- 	columns = df.columns
+	columns = df.columns
 
- 	for column in columns:
+	for column in columns:
 		if column in time_series_dict:
 			time_series_dict[column] = time_series_dict[column].append(df[column])
 		else:

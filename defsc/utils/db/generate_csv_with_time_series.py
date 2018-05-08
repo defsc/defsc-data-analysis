@@ -100,33 +100,33 @@ def extract_timestamp_from_mongo_id(measurement):
 
 
 def extract_pm1_from_airly_measurement(measurement):
-    return measurement.get('measurements', {}).get('pm1', 0.0)
+    return measurement.get('measurements', {}).get('pm1', 'NA')
 
 
 def extract_pm10_from_wios_measurement(measurement):
     if measurement.get('values', {}).get('PM10') == '':
         return 0.0
-    return measurement.get('values', {}).get('PM10', 0.0)
+    return measurement.get('values', {}).get('PM10', 'NA')
 
 
 def extract_pm10_from_airly_measurement(measurement):
-    return measurement.get('measurements', {}).get('pm10', 0.0)
+    return measurement.get('measurements', {}).get('pm10', 'NA')
 
 
 def extract_pm25_from_airly_measurement(measurement):
-    return measurement.get('measurements', {}).get('pm25', 0.0)
+    return measurement.get('measurements', {}).get('pm25', 'NA')
 
 
 def extract_pressure_from_airly_measurement(measurement):
-    return measurement.get('measurements', {}).get('pressure', 0.0)
+    return measurement.get('measurements', {}).get('pressure', 'NA')
 
 
 def extract_temperature_from_airly_measurement(measurement):
-    return measurement.get('measurements', {}).get('temperature', 0.0)
+    return measurement.get('measurements', {}).get('temperature', 'NA')
 
 
 def extract_humidity_from_airly_measurement(measurement):
-    return measurement.get('measurements', {}).get('humidity', 0.0)
+    return measurement.get('measurements', {}).get('humidity', 'NA')
 
 
 def extract_temp_from_ow_measurement(measurement):
@@ -154,7 +154,7 @@ def extract_wind_deg_from_ow_measurement(measurement):
 
 
 def extract_windchill_from_wunder_measurement(measurement):
-    return measurement.get('current_observation', {}).get('windchill_c', '0.0').replace('NA', '0.0')
+    return measurement.get('current_observation', {}).get('windchill_c', 'NA')
 
 
 def extract_wind_kph_from_wunder_measurement(measurement):
@@ -172,7 +172,7 @@ def extract_visibility_km_from_wunder_measurement(measurement):
 
 
 def extract_uv_from_wunder_measurement(measurement):
-    return measurement.get('current_observation', {}).get('UV', '0.0').replace('--', '0.0')
+    return measurement.get('current_observation', {}).get('UV', 'NA').replace('--','')
 
 
 def extract_temp_c_from_wunder_measurement(measurement):
@@ -237,7 +237,7 @@ airly_sensors = db['airly_sensors']
 wunder_sensors = list(db['wunder_sensors_1'].find()) + list(db['wunder_sensors_2'].find())
 wios_sensors = db['wios_sensors']
 airly_measurements = db['airly_sensors_measurements']
-wios_measurements = db['new_wios_measurements']
+wios_measurements = db['wios_measurements']
 ow_weather_measurements = db['open_weather_measurements']
 wunder_weather_measurements = db['wunder_sensors_measurements']
 traffic_measurements = db['traffic_measurements']
@@ -250,15 +250,19 @@ for airly_sensor in airly_sensors.find():
     lom_id = airly_sensor['_id']
     nearest_wios_sensor_id = nearest_wios_sensor[lom_id]
     lom_id = str(lom_id)
+    print(lom_id)
 
     dictionaries_with_measurements = {}
-    for wios_measurement in wios_measurements.find({'wios_sensor_id': str(nearest_wios_sensor_id)}):
+    for wios_measurement in wios_measurements.find({'station_id': str(nearest_wios_sensor_id)}):
         time_stamp = extract_timestamp_from_wios_measurement(wios_measurement)
-        for k, v in wios_measurement['values'].items():
-            tmp_dict = dictionaries_with_measurements.get('wios-' + k, {})
-            if v != '':
-                tmp_dict[time_stamp] = v
-            dictionaries_with_measurements['wios-' + k] = tmp_dict
+
+        k = wios_measurement['measurement']['type']
+        v = wios_measurement['measurement']['value']
+
+        tmp_dict = dictionaries_with_measurements.get('wios-' + k, {})
+        tmp_dict[time_stamp] = v
+        dictionaries_with_measurements['wios-' + k] = tmp_dict
+
     for k, v in dictionaries_with_measurements.items():
         series = Series(v)
         series = series.astype(float)

@@ -5,7 +5,7 @@ from pandas.plotting import autocorrelation_plot
 from statsmodels.tsa.arima_model import ARIMA
 import numpy as np
 from defsc.data_structures_transformation.data_structures_transformation import transform_dataframe_to_supervised
-from defsc.filtering.fill_missing_values import simple_fill_missing_values
+from defsc.filtering.time_series_cleaning import simple_fill_missing_values
 
 def generate_arima_forecast(ts, number_of_timestep_ahead, p, d, q, percantage_of_train_data=0.8):
     number_of_rows = ts.size
