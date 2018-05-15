@@ -1,5 +1,6 @@
 import math
 import os
+import numpy as np
 
 import itertools
 from pandas import read_csv, to_datetime, TimeGrouper, Series, concat
@@ -46,22 +47,35 @@ def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_ti
 
 
 if __name__ == "__main__":
-    directory = './data/multivariate-time-series-may'
+    directory = './data/multivariate-time-series-may-wios'
 
-    train_period = 90 * 24
-    number_of_models = 20
+    train_period = 120 * 24
+    number_of_models = 50
 
     for filename in os.listdir(directory):
-        if filename != 'raw-895.csv':
+        if filename == 'pollution.csv' or filename == 'raw-626.csv' or filename == 'raw-1124.csv' or filename == 'raw-180.csv' or filename == 'raw-226.csv' or filename == 'raw-209.csv' or filename == 'raw-808.csv ' or filename == 'raw-147.csv' or filename == 'raw-181.csv' or filename == 'raw-205.csv' or filename == 'raw-216.csv' or filename == 'raw-171.csv' or filename == 'raw-407.csv':
+            continue
+
+        #if not ('Bujaka' in filename or 'Dietla' in filename):
+        #    continue
+
+
+        if 'wios' in filename:
             continue
 
         csv = os.path.join(directory, filename)
         df = read_csv(csv, header=0, index_col=0)
         df.index = to_datetime(df.index)
 
-        y_column_names = ['airly-pm25']
-        x_history_column_names = ['airly-pm25']
-        x_forecast_column_names = ['ow-wnd-spd', 'ow-tmp', 'ow-hum', 'ow-press']
+        if 'ow-wnd-spd' in df.columns and 'ow-wnd-deg' in df.columns:
+            df['ow-wnd-x'] = df.apply(lambda row: row['ow-wnd-spd'] * math.cos(math.radians(row['ow-wnd-deg'])), axis=1)
+            df['ow-wnd-y'] = df.apply(lambda row: row['ow-wnd-spd'] * math.sin(math.radians(row['ow-wnd-deg'])), axis=1)
+
+        y_column_names = ['airly-pm10']
+        #x_column_names = ['airly-pm1', 'ow-wnd-x', 'here-traffic-jam', 'airly-tmp', 'ow-wnd-y', 'ow-press']
+        x_history_column_names = ['airly-pm10']
+        x_forecast_column_names = ['ow-wnd-spd', 'ow-tmp', 'ow-hum']
+        #x_forecast_column_names = ['airly-tmp','ow-wnd-x','ow-wnd-y','here-traffic-jam','airly-hum','airly-press']
 
         number_of_timestep_ahead = 24
         number_of_timestep_backward = 24
@@ -70,6 +84,8 @@ if __name__ == "__main__":
             print(filename)
             print('Not all columns')
             continue
+
+        #df['wios-PM10'] = df['wios-PM10'].shift(-3)
 
         df = drop_missing_values(df, x_history_column_names + x_forecast_column_names, start='2017-09-23 00:00:00', end='2018-04-30 23:00:00')
 
@@ -87,6 +103,10 @@ if __name__ == "__main__":
 
         for i in range(number_of_models):
             partial_df = df.iloc[step * i:step * i + block_length][:]
+
+            #from matplotlib import pyplot
+            #partial_df.plot(subplots=True)
+            #pyplot.show()
 
             new_df = transform_dataframe_to_supervised(partial_df, x_history_column_names, x_forecast_column_names, y_column_names,
                                                        number_of_timestep_ahead,
@@ -107,6 +127,29 @@ if __name__ == "__main__":
             test_y = new_df.values[number_of_train_rows:, -y_length:]
 
             id = os.path.splitext(filename)[0]  + '_' + partial_df.index[0].strftime('%Y-%m-%d') + '_' + partial_df.index[-1].strftime('%Y-%m-%d') + '_train_len:' + str(train_x.shape[0])
+
+            #new_df.to_csv('dataframe_' + id + '.csv')
+            #np.savetxt('train_x_' + id + '.csv', train_x, delimiter=",")
+            #np.savetxt('train_y_' + id + '.csv', train_y, delimiter=",")
+            #np.savetxt('test_x_' + id + '.csv', test_x, delimiter=",")
+            #np.savetxt('test_y_' + id + '.csv', test_y, delimiter=",")
+
+            #flatten_train_x = train_x.flatten()
+            #flatten_train_y = train_y.flatten()
+            #flatten_test_x = test_x.flatten()
+            #flatten_test_y = test_y.flatten()
+
+            #train_x_set = set(flatten_train_x)
+            #train_y_set = set(flatten_train_y)
+            #test_x_set = set(flatten_test_x)
+            #test_y_set = set(flatten_test_y)
+
+            #print(len(test_y_set))
+            #print(len(test_y_set.intersection(train_x_set)))
+            #print(len(test_y_set.intersection(train_y_set)))
+            #print(len(test_y_set.intersection(test_x_set)))
+
+            #print(test_y_set.intersection(train_y_set))
 
             compare_methods_each_iter(new_df, train_x, train_y, test_x, test_y, number_of_timestep_ahead,
                                       number_of_timestep_backward, id, x_history_column_names + x_forecast_column_names, y_column_names)

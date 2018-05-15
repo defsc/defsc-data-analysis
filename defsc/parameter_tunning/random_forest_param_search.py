@@ -98,4 +98,4 @@ if __name__ == "__main__":
                                                                           len(
                                                                               y_column_names) * number_of_timestep_ahead)
 
-    multioutput_random_forest_regression_params_search(train_y, train_y)
+    multioutput_random_forest_regression_params_search(train_x, train_y)

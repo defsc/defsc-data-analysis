@@ -56,6 +56,10 @@ def split_timeseries_set_on_test_train(df_values, x_length, y_length, number_of_
     train_x = df_values[:number_of_train_rows-number_of_timestep_ahead, :x_length]
     train_y = df_values[:number_of_train_rows-number_of_timestep_ahead, -y_length:]
 
+    # TO-DO chagne above lines to
+    #train_x = new_df.values[:number_of_train_rows - number_of_timestep_backward, :x_length]
+    #train_y = new_df.values[:number_of_train_rows - number_of_timestep_backward, -y_length:]
+
     test_x = df_values[number_of_train_rows:, :x_length]
     test_y = df_values[number_of_train_rows:, -y_length:]
 
