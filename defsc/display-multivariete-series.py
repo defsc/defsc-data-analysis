@@ -69,7 +69,9 @@ def compare_methods_each_iter(df, train_x, train_y, test_x, test_y, number_of_ti
 
 
 if __name__ == "__main__":
-    directory = './data/multivariate-time-series-may-wios'
+    msc_data_dir = os.environ['MSC_DATA']
+    directory = os.path.join(msc_data_dir, 'multivariate-time-series-may-wios')
+
     for filename in os.listdir(directory):
         print(filename)
 

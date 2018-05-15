@@ -194,44 +194,33 @@ def evaluate_method_results(id, y_real, y_predicted):
 
     #plot_histograms_of_forecasts_errors_per_hour(y_real, y_predicted, save_to_file=True, filename=id)
     #plot_forecast_result_as_heat_map(y_real, y_predicted, save_to_file=True, filename=id)
-    #plot_forecasting_result_v2(y_real, y_predicted, save_to_file=True, filename=id)
-    plot_forecasting_result(y_real, y_predicted, save_to_file=True, filename=id)
+    plot_forecasting_result_v2(y_real, y_predicted, save_to_file=True, filename=id)
+    #plot_forecasting_result(y_real, y_predicted, save_to_file=True, filename=id)
 
-def compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead, number_of_timestep_backward, filename, x_column_names, y_column_name):
-    #plot_timeseries(df['airly-pm1(t+0)'], save_to_file=True,
-    #                filename='forecasted_timeseries_' + os.path.splitext(filename)[0])
-
-    persistence_model_result = perform_persistence_model_prediction(df, y_column_name + '(t-1)', len(test_y),
+def compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead,
+                    number_of_timestep_backward, id, x_column_names, y_column_names):
+    persistence_model_result = perform_persistence_model_prediction(df, y_column_names[0] + '(t-1)', len(test_y),
                                                                     number_of_timestep_ahead)
-    evaluate_method_results('persistence-model-regression_' + os.path.splitext(filename)[0], test_y,
+    evaluate_method_results(id + '_persistence-model-regression', test_y,
                             persistence_model_result)
-
-    #persistence_model_result = perform_persistence_model_prediction_24(df, y_column_name, len(test_y),
-    #                                                                number_of_timestep_ahead)
-    #evaluate_method_results('persistence-model-24-regression_' + os.path.splitext(filename)[0], test_y,
-    #                        persistence_model_result)
 
     linear_regression_result = perform_linear_regression_prediction(df, train_x, train_y, test_x,
                                                                     number_of_timestep_ahead)
-    evaluate_method_results('_'.join(x_column_names) + '_linear-regression_' + os.path.splitext(filename)[0], test_y, linear_regression_result)
+    evaluate_method_results(id + '_linear-regression', test_y,
+                            linear_regression_result)
 
-    #arima_result = perform_arima_prediction(df, y_column_name + '(t+0)', number_of_timestep_ahead)
-    #evaluate_method_results('_'.join(x_column_names) + '_arima_' + os.path.splitext(filename)[0], test_y, arima_result)
+    random_forest_regression_result = perform_random_forest_regression_prediction(train_x, train_y, test_x,
+                                                                                  number_of_timestep_ahead)
+    evaluate_method_results(id + '_radnom-forest-regression',
+                            test_y,
+                            random_forest_regression_result)
 
-    #svr_regression_result = perform_svr_regression_prediction(train_x, train_y, test_x,
-    #                                                                number_of_timestep_ahead)
-    #evaluate_method_results('_'.join(x_column_names) + 'svr-regression_' + os.path.splitext(filename)[0], test_y, svr_regression_result)
+    nn_lstm_regression_result = perform_nn_lstm_prediction(train_x, train_y, test_x, test_y,
+                                                           number_of_timestep_ahead, number_of_timestep_backward,
+                                                           train_x.shape[1])
+    evaluate_method_results(id + '_nn-lstm-regression', test_y,
+                            nn_lstm_regression_result)
 
-    #random_forest_regression_result = perform_random_forest_regression_prediction(train_x, train_y, test_x,
-    #                                                                              number_of_timestep_ahead)
-    #evaluate_method_results('_'.join(x_column_names) + '_radnom-forest-regression_' + os.path.splitext(filename)[0], test_y,
-    #                        random_forest_regression_result)
-
-    # nn_lstm_regression_result = perform_nn_lstm_prediction(train_x, train_y, test_x, test_y,
-    #                                                        number_of_timestep_ahead, number_of_timestep_backward,
-    #                                                        train_x.shape[1])
-    #evaluate_method_results('_'.join(x_column_names) + '_nn-lstm-regression_' + os.path.splitext(filename)[0], test_y, nn_lstm_regression_result)
-
-    #nn_mlp_regression_result = perform_nn_mlp_prediction(train_x, train_y, test_x, test_y, number_of_timestep_ahead)
-    #evaluate_method_results('_'.join(x_column_names) + '_nn-mlp-regression_' + os.path.splitext(filename)[0], test_y, nn_mlp_regression_result)
-
+    nn_mlp_regression_result = perform_nn_mlp_prediction(train_x, train_y, test_x, test_y, number_of_timestep_ahead)
+    evaluate_method_results(id + '_nn-mlp-regression', test_y,
+                            nn_mlp_regression_result)

@@ -77,8 +77,9 @@ def load_df_with_traffic_jam(traffic_dir_path):
 
 
 if __name__ == "__main__":
-    traffic_dir_path = './data/air-pollution-traffic/traffic/'
-    wios_csv_path = './data/air-pollution-traffic/air-pollution/wios-measurements.csv'
+    msc_data_dir = os.environ['MSC_DATA']
+    traffic_dir_path = os.path.join(msc_data_dir, 'air-pollution-traffic', 'traffic')
+    wios_csv_path = os.path.join(msc_data_dir, 'air-pollution-traffic', 'air-pollution', 'wios-measurements.csv')
 
     wios_df = load_wios_measurements_into_df(wios_csv_path)
     kras_ts = load_df_with_traffic_jam(traffic_dir_path)
