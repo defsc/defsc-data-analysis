@@ -70,9 +70,16 @@ def calculate_rmse_metrics(y_real, y_predicted):
 def calculate_nrmse_metrics(y_real, y_predicted):
     rmse = []
     for hour in range(y_real.shape[1]):
-        rmse.append(sqrt(mean_squared_error(y_real[:, hour], y_predicted[:, hour])) / (np.max(y_real) - np.min(y_real)))
+        rmse.append(sqrt(mean_squared_error(y_real[:, hour], y_predicted[:, hour])) / np.average(y_real))
 
     return  rmse
+
+def calculate_mape_metrics(y_real, y_predicted):
+    mae = []
+    for hour in range(y_real.shape[1]):
+        mae.append(mean_absolute_error(y_real[:, hour], y_predicted[:, hour]) / np.average(y_real))
+
+    return mae
 
 def calculate_mae_metrics(y_real, y_predicted):
     mae = []
@@ -188,13 +195,14 @@ def perform_persistence_model_prediction_24(df, predicted_column_name, number_of
 
 def evaluate_method_results(id, y_real, y_predicted):
     mae = calculate_mae_metrics(y_real, y_predicted)
+    mape = calculate_mape_metrics(y_real, y_predicted)
     rmse = calculate_rmse_metrics(y_real, y_predicted)
     nrmse = calculate_nrmse_metrics(y_real, y_predicted)
-    print('{},{:.2f},{:.2f},{:.2f}'.format(id, np.average(mae), np.average(rmse), np.average(nrmse)))
+    print('{},{:.2f},{:.2f},{:.2f},{:.2f}'.format(id, np.average(mae), np.average(mape), np.average(rmse), np.average(nrmse)))
 
     #plot_histograms_of_forecasts_errors_per_hour(y_real, y_predicted, save_to_file=True, filename=id)
     #plot_forecast_result_as_heat_map(y_real, y_predicted, save_to_file=True, filename=id)
-    plot_forecasting_result_v2(y_real, y_predicted, save_to_file=True, filename=id)
+    #plot_forecasting_result_v2(y_real, y_predicted, save_to_file=True, filename=id)
     #plot_forecasting_result(y_real, y_predicted, save_to_file=True, filename=id)
 
 def compare_methods(df, train_x, train_y, test_x, test_y, number_of_timestep_ahead,
